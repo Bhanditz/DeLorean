@@ -1,0 +1,199 @@
+---
+title: DeLorean analysis of Trapnell et al. myoblast data
+author: John Reid
+bibliography: DeLorean.bib
+output: html_document
+---
+
+<!--
+%\VignetteEngine{knitr::rmarkdown}
+%\VignetteIndexEntry{DeLorean analysis of Trapnell et al. myoblast data}
+-->
+
+```{r build, echo=FALSE, eval=FALSE}
+devtools::load_all('../..')
+devtools::load_all('../../../DeLoreanData')
+rmarkdown::render('DeLorean-Trapnell.Rmd')
+
+```
+
+
+```{r config, echo=FALSE, message=FALSE}
+library(knitr)
+library(knitcitations)
+library(rmarkdown)
+#
+# knitr options
+#
+opts_chunk$set(
+    fig.path = 'figures/Trapnell-',
+    stop_on_error = TRUE,
+    fig.width = 12.5,
+    fig.height = 8)
+#
+# Citations
+#
+cleanbib()
+cite_options(
+    # hyperlink = 'to.doc',
+    hyperlink = TRUE,
+    # style = 'html',
+    # citation_format = 'text',
+    citation_format = "pandoc",
+    cite.style = "numeric",
+    check.entries = TRUE)
+    # hyperlink = TRUE)
+bib <- read.bibtex("DeLorean.bib")
+if (file.exists("config.R")) {
+    source("config.R")
+}
+
+```
+
+```{r loadLibs, echo=FALSE, message=FALSE}
+# suppressMessages(loadfonts())
+library(DeLorean)
+library(DeLoreanData)
+#
+# Stylesheet
+#
+options(markdown.HTML.stylesheet = system.file(file.path('Rmd', 'foghorn.css'),
+                                               package="DeLorean"))
+
+```
+
+
+Load data.
+```{r loadData}
+library(DeLorean)
+data(TrapnellDeLorean)
+dl <- de.lorean(
+    trapnell.expr,
+    trapnell.gene.meta,
+    trapnell.cell.meta)
+
+```
+
+```{r child=report.file("data")}
+```
+
+
+# Estimate hyperparameters
+
+Examine data for empirical Bayes estimation of hyperparameters.
+```{r empBayes}
+dl <- estimate.hyper(dl, sigma.tau=6)
+```
+
+
+```{r child=report.file("hyper-parameters")}
+```
+
+
+# Choose genes and cells
+
+Select cells at random if we have too many.
+```{r filterCells}
+set.seed(1)
+max.cells <- min(getOption("DL.max.cells", 57))
+sampled.cells <- sample(dl$cell.meta$cell, max.cells)
+cell.filter <- function(cells) cells %in% sampled.cells
+dl <- filter.cells(dl, cell.filter)
+
+```
+
+
+Select genes by variance.
+```{r chooseGenes}
+max.genes <- 151
+genes.high.var <- (dl$gene.var
+                   %>% arrange(-Psi)
+                   %>% head(max.genes))$gene
+gene.filter <- function(genes) genes %in% genes.high.var
+dl <- filter.genes(dl, gene.filter)
+
+```
+
+
+# Compile and fit model
+
+Define and compile the model, find the best initialisation, and fit the model.
+```{r model}
+dl <- prepare.for.stan(dl)
+dl <- compile.model(dl)
+dl <- find.best.tau(dl)
+system.time(dl <- fit.model(dl))
+
+```
+
+
+# Examine convergence.
+
+```{r examConv}
+dl <- examine.convergence(dl)
+
+```
+
+```{r child=report.file("convergence")}
+```
+
+
+
+# Analyse posterior
+
+Examine posterior.
+```{r posterior}
+dl <- process.posterior(dl)
+dl <- analyse.noise.levels(dl)
+
+```
+
+```{r child=report.file("posterior")}
+```
+
+
+# Profiles
+
+Calculate expression profiles.
+```{r makePredictions}
+dl <- make.predictions(dl)
+
+```
+
+```{r child=report.file("profiles")}
+```
+
+Plot some specific profiles mentioned in Trapnell et al.
+```{r}
+genes.fig.2 <- c("MEF2C", "MYH2", "CDK1", "ID1", "MYOG")
+genes.fig.3.cluster <- c("HES1", "PBX1", "MYOG", "CDK1", "AKT1", "MYF6")
+genes.fig.3.reg <- c("MEF2", "MYOD", "P300", "E47", "MEIS1", "PBX1",
+                     "XBP1", "CUX1", "USF1", "ZIC1", "MZF1", "POU2F1",
+                     "POU3F2", "AHR", "RREB1", "RFX1", "HIVEP2", "PATZ1",
+                     "DDIT3", "BACHA1", "ARID5B")
+genes.fig.3 <- c(genes.fig.3.cluster, genes.fig.3.reg)
+genes.fig.4.a <- c("MZF1", "ZIC1", "XBP1", "CUX1", "ARID5B", "USF1", "POU2F1",
+                   "AHR", "PATZ1", "DDIT3", "BACH1", "MYOG")
+genes.fig.all <- unique(c(genes.fig.2, genes.fig.3, genes.fig.4.a))
+filter(dl$gene.map , hgnc_symbol %in% genes.fig.all)
+filter(dl$gene.meta, hgnc_symbol %in% genes.fig.all)
+png('Trapnell-profiles.png', width=1200, height=800)
+(plot(dl,
+      type="profiles",
+      genes=filter(dl$gene.map, hgnc_symbol %in% genes.fig.all)$gene)
+    + facet_wrap(~ hgnc_symbol + gene))
+dev.off()
+```
+
+
+```{r echo=FALSE}
+# Save DeLorean object without fit component
+saveRDS({dl2 <- dl; dl2$fit <- NULL; dl2}, "Data/Trapnell.rds")
+```
+
+
+R version and packages used:
+```{r sessionInfo}
+sessionInfo()
+```
+

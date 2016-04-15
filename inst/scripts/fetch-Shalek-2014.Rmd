@@ -1,0 +1,297 @@
+---
+title: Fetch Shalek et al. (2014) data
+author: John Reid
+output: html_document
+---
+
+```{r build, echo=FALSE, eval=FALSE}
+devtools::load_all('../..')
+rmarkdown::render('fetch-Shalek-2014.Rmd')
+```
+
+
+```{r loadLibs, echo=FALSE, message=FALSE}
+library(DeLorean)
+library(stringr)
+library(dplyr)
+library(reshape2)
+library(ggplot2)
+```
+
+
+```{r config, echo=FALSE, message=FALSE}
+library(knitr)
+library(rmarkdown)
+#
+# knitr options
+#
+opts_chunk$set(
+    fig.path = 'figures/Shalek-',
+    stop_on_error = TRUE,
+    fig.width = 12.5,
+    fig.height = 8)
+#
+# Widths for saving figures
+#
+text.width <- 4.79  # LaTeX width in inches
+golden.ratio <- 1.618  # Pleasing ratio
+fig.width <- text.width
+fig.height <- text.width / golden.ratio
+#
+# Stylesheet
+#
+options(markdown.HTML.stylesheet = system.file("inst/Rmd/foghorn.css",
+                                               package="DeLorean"))
+font.family <- "Verdana"
+font.theme <- theme_update(text=element_text(family=font.family))
+theme_set(font.theme)
+
+```
+
+
+
+Shalek et al. investigated mouse bone-marrow-derived dendritic cells.
+
+
+Two matrix files are available from GEO. We shall name them A and B.
+First we parse A.
+```{r parseA}
+csv.filename <- '../../data/GSE48968_allgenesTPM_GSM1189042_GSM1190902.txt.gz'
+shalek.A <- read.csv(csv.filename, sep='\t')
+cells.A <- colnames(shalek.A)
+genes.A <- rownames(shalek.A)
+class(shalek.A)
+dim(shalek.A)
+sapply(shalek.A, class)
+gene.meta.A <- data.frame(gene=factor(genes.A, levels=genes.A))
+gp <- qplot(as.vector(as.matrix(shalek.A[sample(nrow(shalek.A), 1000),
+                                         sample(ncol(shalek.A), 100)])))
+pdf("Shalek-expr.pdf")
+print(gp + scale_x_log10())
+dev.off()
+
+cell.re.A <- str_c(
+    '^',
+    '(?:(Tube_Control|On_Chip_Stimulation)_)?',
+    '(?:(Ifnar1|Stat1|Tnfr)_KO_)?',
+    '(?:(IFNB|LPS|PAM|PIC)_)?',
+    '(?:(Unstimulated|[[:digit:]]+h)_)?',
+    '(?:(Replicate)_)?',
+    '(?:S([[:digit:]]+)_)?',
+    '$')
+cell.meta.A <- (
+    as.data.frame(str_match(str_c(names(shalek.A), '_'), cell.re.A))
+    %>% dplyr::select(cell=V1, assay=V2, ko=V3, stimulant=V4,
+               capture=V5, replicate=V6, cell.num=V7)
+    %>% mutate(cell=factor(str_replace(cell, "_$", ""), levels=cells.A),
+               cell.num=as.numeric(as.character(cell.num)),
+               capture=factor(capture,
+                              ordered=TRUE,
+                              levels=c("Unstimulated", "1h", "2h", "4h", "6h")),
+               obstime=as.numeric(ifelse("Unstimulated"==capture, "0",
+                                  str_match(capture, "[[:digit:]]+")))))
+sample_n(cell.meta.A, 20)
+stopifnot(all(! is.na(cell.meta.A[,1])))
+which(is.na(cell.meta.A[,1]))
+sapply(cell.meta.A %>% dplyr::select(-1), levels)
+sapply(cell.meta.A, class)
+nrow(cell.meta.A)
+# cell.meta.A %>% filter(""!=assay)
+
+
+```
+
+
+Load supplementary table 2.
+```{r suppTable2}
+supp.table.2 <- (
+    read.csv('../../data/Shalek-2014-Supp-Table-2.csv')
+    %>% rename(cell=Experiment,
+               total=Total.Reads,
+               aligned=Aligned.Reads....Transcriptome.)
+    %>% mutate(cell.orig=cell,
+               cell.1=cell
+                      %>% str_replace("Technical_Replicate_1_", "Replicate_1_")
+                      %>% str_replace("Technical_Replicate_2_", "Replicate_2_")
+                      %>% str_replace("_Unstim_", "_Unstimulated_")
+                      %>% str_replace("_rsem$", ""),
+               cell=factor(cell.1, levels=cells.A)))
+    #%>% dplyr::select(-cell.1))
+sapply(supp.table.2, class)
+dim(supp.table.2)
+sum(is.na(supp.table.2$cell))
+# Which cells failed to map
+# supp.table.2 %>% filter(is.na(cell))
+# Update cell meta data with Table 2
+cell.meta.A <- (
+    cell.meta.A
+    %>% left_join(supp.table.2 %>% dplyr::select(cell, total, aligned)))
+dim(cell.meta.A)
+# Check which cells in table 2 have more than one match
+print(
+    supp.table.2
+    %>% group_by(cell)
+    %>% dplyr::summarise(num=n())
+    %>% arrange(-num)
+    %>% filter(num > 1)
+)
+
+```
+
+
+Load supplementary table 3.
+```{r suppTable3}
+supp.table.3 <- (
+    read.csv('../../data/Shalek-2014-Supp-Table-3.csv')
+    %>% rename(gene=GENE,
+               cluster=CLUSTER,
+               RefSeq=REFSEQ)
+    %>% mutate(gene=factor(gene, levels=genes.A)))
+sapply(supp.table.3, class)
+dim(supp.table.3)
+sum(is.na(supp.table.3$gene))
+which(is.na(supp.table.3$gene))
+gene.meta.A <- gene.meta.A %>% left_join(supp.table.3)
+
+```
+
+
+Investigate the cluster disruption markers.
+```{r clusterDisruption}
+cluster.disrupt <- (
+    t(as.matrix(shalek.A[c('SERPINB6B', 'LYZ1'),]))
+    %>% melt(varnames=c("cell", "gene"), value.name="TPM")
+    %>% mutate(expr=log(TPM+1))
+    %>% dcast(cell ~ gene, value.var="expr")
+    %>% mutate(disrupted=LYZ1<6 | SERPINB6B>4)
+)
+class(cluster.disrupt)
+names(cluster.disrupt)
+gp <- ggplot(cluster.disrupt,
+             aes(x=SERPINB6B, y=LYZ1, color=disrupted)) + geom_point()
+pdf("Shalek-cluster-disrupt.pdf")
+print(gp)
+dev.off()
+cell.meta.A <- cell.meta.A %>% left_join(cluster.disrupt %>% dplyr::select(cell, disrupted))
+
+```
+
+
+Have a look at which cells might be useful for modelling.
+```{r LPSforModeling}
+cell.meta.A %>% filter(! is.na(total),
+                       "" == assay,
+                       # str_detect(stimulant, "LPS|Unstimulated"),
+                       "LPS" == stimulant | "" == stimulant,
+                       "" == ko,
+                       FALSE == disrupted,
+                       total > 1e6,
+                       "" == replicate)
+
+```
+
+
+Investigate how many reads per cell.
+```{r readsPerCell}
+colSums(shalek.A)
+```
+
+
+Check other method to retrieve data to see if there is more meta data.
+```{r useGEOquery, include=FALSE, eval=FALSE}
+library(GEOquery)
+geo.series <- 'GSE48968'
+geo.sample.1 <- 'GSM1189042'
+geo.sample.2 <- 'GSM1190902'
+gse <- getGEO(geo.sample.1, GSEMatrix=FALSE)
+
+```
+
+
+Now we parse B.
+```{r parseB}
+csv.filename <- '../../data/GSE48968_allgenesTPM_GSM1406531_GSM1407094.txt.gz'
+shalek.B <- read.csv(csv.filename, sep='\t')
+genes.B <- rownames(shalek.B)
+cells.B <- colnames(shalek.B)
+cell.re.B <- str_c(
+    '^',
+    '(wps|tr[1234]|gp[abc]|hero|ifnr)_',
+    '(t[[:digit:]]+)_',
+    '(S[[:digit:]]+)_rsem',
+    '$')
+names(shalek.B)
+cell.meta.B <- (
+    as.data.frame(str_match(names(shalek.B), cell.re.B))
+    %>% dplyr::select(ko=V2, t=V3, cell=V4))
+sample_n(cell.meta.B, 20)
+stopifnot(all(! is.na(cell.meta.B[,1])))
+which(is.na(cell.meta.B[,1]))
+sapply(cell.meta.B, levels)
+
+gene.meta.B <- data.frame(gene=factor(genes.B, levels=genes.B))
+
+```
+
+
+Define some key genes mentioned in the paper.
+```{r keyGenes}
+shalek.key.genes <- unique(toupper(c(
+    #
+    # Cluster I d (core antiviral module; enriched for annotated antiviral and
+    #             interferon response genes; for example, 
+    "Ifit1", "Irf7",
+    #
+    # Cluster III c (peaked inflammatory module; showing rapid,
+    # yet transient, induction under LPS; for example,
+    "Tnf", "Il1a", "Cxcl2",
+    #
+    # Cluster III d (sustained inflammatory module; exhibiting
+    # continued rise in expression under LPS; for example,
+    "Mmp14", "Marco", "Il6",
+    #
+    # Cluster III b (‘maturity’ module; containing markers of
+    # dendritic cell maturation; for example,
+    "Cd83", "Ccr7", "Ccl22",
+    #
+    # At 2 h following LPS,
+    "Ifnb1",
+    # was bimodally expressed
+    #
+    # Genes encoding key inflammatory cytokines (for example,
+    "Tnf", "Cxcl1",
+    #
+    # Figure 4: core antiviral targets.
+    "Rsad2", "Stat2"
+)))
+# shalek.key.genes %in% genes.A
+stopifnot(0 == sum(! shalek.key.genes %in% genes.A))
+
+```
+
+
+Save the data in a format suitable for DeLorean package.
+```{r saveData}
+shalek.A.expr <- log(as.matrix(shalek.A)+1)
+shalek.A.cell.meta <- cell.meta.A
+shalek.A.gene.meta <- gene.meta.A
+# Test we can construct a DeLorean object
+dl <- de.lorean(shalek.A.expr, shalek.A.gene.meta, shalek.A.cell.meta)
+# Save
+save(shalek.A.expr,
+     shalek.A.gene.meta,
+     shalek.A.cell.meta,
+     file='../../data/ShalekDeLorean.rda')
+
+```
+
+
+```{r date}
+date()
+```
+
+
+R version and packages used:
+```{r Rversion}
+sessionInfo()
+```

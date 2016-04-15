@@ -1,0 +1,155 @@
+---
+title: Monocle analysis of Windram et al. arabidopsis data
+author: John Reid
+bibliography: ../../inst/scripts/DeLorean.bib
+output: html_document
+---
+
+
+```{r build, echo=FALSE, eval=FALSE}
+library(devtools)
+load_all('../..')
+library(rmarkdown)
+render('Windram-Monocle.Rmd')
+```
+
+```{r config, echo=FALSE, message=FALSE}
+library(knitr)
+library(knitcitations)
+library(rmarkdown)
+#
+# knitr options
+#
+opts_chunk$set(
+    fig.path = 'figures/Windram-',
+    stop_on_error = TRUE,
+    fig.width = 12.5,
+    fig.height = 8)
+#
+# Citations
+#
+cleanbib()
+cite_options(
+    # hyperlink = 'to.doc',
+    hyperlink = TRUE,
+    # style = 'html',
+    # citation_format = 'text',
+    citation_format = "pandoc",
+    cite.style = "numeric",
+    check.entries = TRUE)
+    # hyperlink = TRUE)
+bib.file <- system.file("inst/scripts/DeLorean.bib", package="DeLorean")
+bib <- read.bibtex(bib.file)
+if (file.exists("config.R")) {
+    source("config.R")
+}
+source(system.file("inst/scripts/shared.R", package="DeLorean"))
+```
+
+```{r init, echo=FALSE, message=FALSE, warning=FALSE}
+# suppressMessages(loadfonts())
+library(DeLorean)
+#
+# Stylesheet
+#
+options(markdown.HTML.stylesheet = system.file("inst/Rmd/foghorn.css",
+                                               package="DeLorean"))
+font.family <- "Verdana"
+font.theme <- theme_update(text=element_text(family=font.family))
+theme_set(font.theme)
+```
+
+
+# Data
+
+Load the data that we used for the DeLorean analysis and create a
+`CellDataSet` for use with `Monocle`.
+```{r loadLib}
+library(monocle)
+.data <- readRDS('Data/Windram-input.rds')
+colnames(.data$expr) <- rownames(.data$cell.meta) <- .data$cell.meta$cell
+rownames(.data$expr) <- rownames(.data$gene.meta) <- .data$gene.meta$gene
+cds <- new("CellDataSet",
+           exprs=exp(.data$expr),
+           phenoData=new("AnnotatedDataFrame",
+                         data=as.data.frame(.data$cell.meta)),
+           featureData=new("AnnotatedDataFrame",
+                           data=as.data.frame(.data$gene.meta)))
+cds@expressionFamily <- gaussianff()
+```
+
+
+## Check data is log normal
+
+```{r logNormal}
+# Log-transform each value in the expression matrix.
+L <- log(exprs(cds))
+# Standardize each gene, so that they are all on the same scale,
+# Then melt the data with reshape2 so we can plot it easily"
+melted_dens_df <- reshape2::melt(t(scale(t(L))))
+# Plot the distribution of the standardized gene expression values.
+qplot(value, geom = "density", data =melted_dens_df) +
+    stat_function(fun=dnorm, size=0.5, color='red') +
+    # + xlab("Standardized log(FPKM)")
+    ylab("Density")
+```
+
+
+# Reduce dimension
+
+```{r}
+set.seed(37)  # For reproducibility
+cds <- reduceDimension(cds, use_irlba=F)
+```
+
+# Order cells
+
+```{r}
+cds <- orderCells(cds, num_paths=1, reverse=F)
+```
+
+Plot the spanning tree.
+```{r}
+gp.mst <- plot_spanning_tree(cds, color_by="capture")
+print(gp.mst)
+pdf('Windram-Monocle-order.pdf', width=fig.width, height=fig.height)
+print(gp.mst)
+dev.off()
+png('Windram-Monocle-order.png', width=fig.width, height=fig.height,
+    units="in", res=300)
+print(gp.mst)
+dev.off()
+```
+
+Plot some genes in pseudotime.
+```{r}
+genes.to.plot <- sample(rownames(fData(cds)), 3)
+p <- plot_genes_in_pseudotime(cds[genes.to.plot,], color_by="capture")
+print(p)
+pdf('Windram-Monocle-pseudotime.pdf', width=fig.width, height=fig.height)
+print(p)
+dev.off()
+```
+
+Plot pseudotime against true capture time.
+```{r}
+.data <- as(phenoData(cds), "data.frame")
+gp.monocle.pseudo <- (
+    ggplot(.data,
+           aes(x=Pseudotime,
+               y=obstime.orig))
+    + geom_point()
+    + scale_x_continuous(name="pseudotime")
+    + scale_y_continuous(name="capture time"))
+print(gp.monocle.pseudo)
+ggsave('Windram-Monocle-compare.eps', gp.monocle.pseudo + bioinf.theme,
+       width=bioinf.single.w, height=bioinf.single.h, units="in")
+# What is the correlation?
+with(.data, cor(obstime.orig, Pseudotime, method="spearman"))
+```
+
+
+R version and packages used:
+```{r Rversion}
+sessionInfo()
+```

@@ -1,0 +1,120 @@
+```{r hyperAttach, include=FALSE}
+# Attach the DeLorean data frame to access members
+attach(dl)
+```
+
+## Fixed hyperparameters
+
+The standard deviation of cell pseudotimes around the cell capture times has been set as
+$$
+    \sigma_\tau = `r opts$sigma.tau`
+$$
+The length scale of the gene expression profiles has been set as
+$$
+l = `r hyper$l`
+$$
+
+
+## Variance decomposition into temporal variation and noise
+
+We examine the variance both between- and within-time points. We expect some of
+the variation within a time point to be associated with noise in the temporal
+dimension, that is estimating the pseudotime correctly should reduce the
+within-time variance. The rest of the variation within a time point will be due
+to noise.  Conversely we expect most of the variation between time points to be
+due to temporal variation although some will be due to noise.
+
+Let
+$$
+k_c \in \{\kappa_1, \dots, \kappa_T\}
+$$
+be the time point at which cell $c$ was captured. We partition the cells
+by their captured time points indexed by $1 \le t \le T$:
+$$
+\mathcal{K}_t = \{c: k_c = \kappa_t\}
+$$
+We group the expression measurements by gene and observed capture time to
+calculate means and variances:
+$$
+\begin{align}
+\mathbb{M}_{g,t} &= \text{Mean}_{c \in \mathcal{K}_t}\{x_{g,c}\} \\\\
+\mathbb{V}_{g,t} &= \text{Var}_{c \in \mathcal{K}_t}\{x_{g,c}\}
+\end{align}
+$$
+
+### Noise estimates
+
+We estimate the gene-specific noise levels by assuming that all the within-time
+variation in the data is due to noise. This should be a slight overestimate as
+some variation will be due to noise in the pseudotemporal dimension.
+$$
+  \hat{\omega}_g = \textrm{Mean}_t\{\mathbb{V}_{g,t}\}
+$$
+The estimated standard deviations $\sqrt{\hat{\omega}_g}$ have this distribution:
+```{r geneWithinVar}
+(ggplot(gene.var, aes(x=sqrt(omega.hat))) + geom_density() + geom_rug())
+```
+
+Giving us this fit for our empirical Bayes prior on the $\log \hat{\omega}_g$
+```{r omegaPrior}
+(ggplot(gene.var, aes(x=log(omega.hat))) + geom_density() + geom_rug()
+    + stat_function(fun=function(x) dnorm(x,
+                                          mean=hyper$mu_omega,
+                                          sd=hyper$sigma_omega),
+                    colour="blue", alpha=.7, linetype="dashed")
+)
+
+```
+
+
+### Temporal variation estimates
+
+We estimate the temporal variation by calculating the expected variance of samples
+at the capture times from the expression profile of a gene $g$. These depend on
+our fixed length scale and unknown temporal variance $\psi_g$. The
+covariance of these samples will be $\psi_g \hat{\Sigma}$ where
+$$
+  \hat{\Sigma}_{t_1,t_2} = \Sigma_\tau(\kappa_{t_1}, \kappa_{t_2})
+$$
+The expected variance of our samples is $\psi_g V_{\hat{\Sigma}}$ where
+$$
+  V_{\hat{\Sigma}} = \textrm{Mean}\{\textrm{Diag}(\hat{\Sigma})\} - \textrm{Mean}\{\hat{\Sigma}\}
+$$
+and we can slightly overestimate the temporal variances $\psi_g$ by ignoring the
+noise in our data
+$$
+  \hat{\psi}_g = \frac{\textrm{Var}_t\{\mathbb{M}_{g,t}\}}{V_{\hat{\Sigma}}}
+$$
+The estimated standard deviations $\sqrt{\hat{\psi}_g}$ have this distribution:
+```{r geneBetweenVar}
+(ggplot(gene.var, aes(x=sqrt(psi.hat))) + geom_density() + geom_rug())
+```
+
+Giving us this fit for our empirical Bayes prior on the temporal variation
+$\log \hat{\psi}_g$
+```{r psiPrior}
+(ggplot(gene.var, aes(x=log(psi.hat))) + geom_density() + geom_rug()
+    + stat_function(fun=function(x) dnorm(x,
+                                          mean=hyper$mu_psi,
+                                          sd=hyper$sigma_psi),
+                    colour="blue", alpha=.7, linetype="dashed")
+)
+```
+
+### Correlation between temporal variation and noise
+
+The correlation between the temporal variation and noise estimates is
+`r with(gene.var, round(cor(psi.hat, omega.hat), digits=2))`.
+Plotting the estimated noise levels against temporal variation gives:
+```{r geneWithinVsBetweenVar}
+(
+    ggplot(gene.var, aes(x=sqrt(psi.hat), y=sqrt(omega.hat)))
+    + geom_point()
+    + geom_abline(intercept=0, slope=1, linetype="dashed", alpha=.7)
+)
+```
+
+```{r hyperDetach, include=FALSE}
+# Detach the previously attached DeLorean data frame
+detach(dl)
+```
