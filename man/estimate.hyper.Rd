@@ -5,7 +5,7 @@
 \title{Estimate hyperparameters for model using empirical Bayes.}
 \usage{
 estimate.hyper(dl, sigma.tau = 0.5, length.scale = NULL,
-  model.name = "simplest-model")
+  model.name = "exact", adjust.cell.sizes = TRUE)
 }
 \arguments{
 \item{dl}{de.lorean object}
@@ -17,12 +17,15 @@ Defaults to the range of the observed capture times.}
 
 \item{model.name}{The model's name:
 \itemize{
-  \item 'simplest-model': The simplest model (does not estimate the gene
-    means).
-  \item 'simple-model': Like 'simplest-model' but estimates the gene
-    means.
-  \item 'lowrank': Low rank approximation to the 'simplest-model'.
+  \item 'exact': The model without a low rank approximation
+    that does not estimate the cell sizes.
+  \item 'exact-sizes': The model without a low rank approximation
+    that does estimate the cell sizes.
+  \item 'lowrank': Low rank approximation to the 'exact' model.
+  \item 'lowrank-sizes': Low rank approximation to the 'exact-sizes' model.
 }}
+
+\item{adjust.cell.sizes}{Adjust by the cell sizes for better estimates of the hyperparameters}
 }
 \description{
 Estimate hyperparameters for model using empirical Bayes.

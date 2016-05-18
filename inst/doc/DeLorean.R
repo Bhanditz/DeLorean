@@ -10,13 +10,18 @@ knitr::opts_chunk$set(
 library(DeLorean)
 library(dplyr)
 data(GuoDeLorean)
-options(DL.num.cores=min(DeLorean::default.num.cores(), 2))  # Limit number of cores to 2 for CRAN
+# Limit number of cores to 2 for CRAN
+options(DL.num.cores=min(default.num.cores(), 2))
 
 ## ------------------------------------------------------------------------
 dl <- de.lorean(guo.expr, guo.gene.meta, guo.cell.meta)
 
 ## ------------------------------------------------------------------------
-dl <- estimate.hyper(dl, sigma.tau=0.5)
+dl <- estimate.hyper(
+    dl,
+    sigma.tau=0.5,
+    length.scale=1.5,
+    model.name='simple-model')
 
 ## ------------------------------------------------------------------------
 num.at.each.stage <- 5

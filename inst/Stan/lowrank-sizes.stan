@@ -152,6 +152,10 @@ data {
   #
   # Hyperparameters
   #
+  real mu_S;  # Mean of cell size factor, S
+  real<lower=0> sigma_S;  # S.d. of cell size factor, S
+  real mu_phi;  # Mean of gene mean, phi
+  real<lower=0> sigma_phi;  # S.d. of gene mean, phi
   real mu_psi;  # Mean of log between time variation, psi
   real<lower=0> sigma_psi;  # S.d. of log between time variation, psi
   real mu_omega;  # Mean of log within time variation, omega
@@ -188,7 +192,8 @@ transformed data {
   }
 }
 parameters {
-  row_vector[C] tauoffsets;    # Pseudotime
+  vector[C] S;                   # Cell-size factor for expression
+  row_vector[C] tauoffsets;      # Pseudotime
   row_vector<lower=0>[G] psi;    # Between time variance
   row_vector<lower=0>[G] omega;  # Within time variance
 }
@@ -201,6 +206,9 @@ model {
   # Approximation to pseudotime covariance matrix
   matrix[M,C] Aut;  # Sqrt of approximation
   vector[C] KminusQdiag;   # Diagonal adjustment to approximate covariance
+  #
+  # Sample cell-specific factors
+  S ~ normal(mu_S, sigma_S);  # Cell size factors
   #
   # Calculate the square root of Qtautau. Complexity: O(CM^2)
   Aut <- mdivide_left_tri_low(KuuChol, cov(u, tau, periodic, period, l));
@@ -222,16 +230,20 @@ model {
   #
   # Expression values for each gene
   for (g in 1:G) {
+    vector[C] exprnorm;  # Expression adjusted for cell sizes
     vector[C] Binv;
     vector[C] Binvy;
     vector[M] b;  # Aut * B-1 * y
     matrix[M,M] Vchol;  # Low dimension decomposition
     real log_det_cov;  # The logarithm of the determinant of the covariance
     #
+    # Adjust for cell sizes
+    exprnorm <- expradj[g] - S;
+    #
     # Inverse of high dimensional covariance diagonal
     # Here we are assuming that the diagonal of Ktautau is 1
     Binv <- 1 ./ (omega[g] + psi[g] * KminusQdiag);
-    Binvy <- Binv .* expradj[g];
+    Binvy <- Binv .* exprnorm;
     #
     # Invert low dimensional matrix
     # Complexity: O(GM^3)
@@ -252,7 +264,7 @@ model {
     # Increment log probability with multivariate normal log likelihood
     # Complexity: O(GC)
     increment_log_prob(-.5 * (log_det_cov
-                              + dot_product(expradj[g], Binvy)
+                              + dot_product(exprnorm, Binvy)
                               - dot_self(b)));
   }
 }
@@ -285,7 +297,7 @@ generated quantities {
       KsuSigmag <- Kus' / (ratio*tcrossprod(Kut) + Kuu);
       #
       # Calculate the predicted mean
-      predictedmean[g] <- ratio*KsuSigmag*Kut*expradj[g];
+      predictedmean[g] <- ratio*KsuSigmag*Kut*(expradj[g] - S);
       #
       # Calculate the predicted variance
       predictedvar[g] <- psi_g * (

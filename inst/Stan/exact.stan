@@ -19,7 +19,7 @@ functions {
     real
     matern32_cov(real r, real l) {
         real x;
-        x <- sqrt(3) * fabs(r / l);
+        x <- sqrt(3.) * fabs(r / l);
         return (1 + x) * exp(- x);
     }
     #
@@ -111,23 +111,19 @@ data {
     row_vector<lower=0>[C] time;  # Time index for cell c
     # Expression data
     vector[C] expr[G+H];
+    row_vector[G+H] phi;  # gene mean
     #
     # Hyperparameters
     #
-    real mu_S;  # Mean of cell size factor, S
-    real<lower=0> sigma_S;  # S.d. of cell size factor, S
-    real mu_phi;  # Mean of gene mean, phi
-    real<lower=0> sigma_phi;  # S.d. of gene mean, phi
     real mu_psi;  # Mean of log between time variation, psi
     real<lower=0> sigma_psi;  # S.d. of log between time variation, psi
     real mu_omega;  # Mean of log within time variation, omega
     real<lower=0> sigma_omega;  # S.d. of log within time variation, omega
-    real l;  # Length scale squared for phi
+    real l;  # Length scale
     real<lower=0> sigma_tau;  # Standard deviation for pseudotime
     #
     # Held out parameters
     #
-    row_vector[H] heldout_phi;    # Mean expression
     row_vector<lower=0>[H] heldout_psi;    # Between time variance
     row_vector<lower=0>[H] heldout_omega;  # Within time variance
     #
@@ -147,19 +143,13 @@ transformed data {
     identity <- diag_matrix(rep_vector(1, C));
 }
 parameters {
-    row_vector[C] S;      # Cell-size factor for expression
     row_vector[C] tau;    # Pseudotime
-    row_vector[G] phi;    # Mean expression for each gene
     row_vector<lower=0>[G] psi;    # Between time variance
     row_vector<lower=0>[G] omega;  # Within time variance
 }
 model {
     #
-    # Sample cell-specific factors
-    S ~ normal(mu_S, sigma_S);  # Cell size factors
-    #
     # Sample gene-specific factors
-    phi ~ normal(mu_phi, sigma_phi);
     psi ~ lognormal(mu_psi, sigma_psi);
     omega ~ lognormal(mu_omega, sigma_omega);
     #
@@ -169,7 +159,7 @@ model {
     # Expression values for each gene
     for (g in 1:G) {
         expr[g] ~ multi_normal(
-                    S + phi[g],
+                    rep_vector(phi[g], C),
                     psi[g] * cov_symmetric(tau,
                                            periodic,
                                            period,
@@ -189,19 +179,16 @@ generated quantities {
         vector[C] v;
         matrix[C,numtest] kstartest;
         matrix[C,numtest] vtest;
-        real phi_g;
         real psi_g;
         real omega_g;
         if (g <= G) {
             #
             # Sampled parameters
-            phi_g <- phi[g];
             psi_g <- psi[g];
             omega_g <- omega[g];
         } else {
             #
             # Parameters for held out genes
-            phi_g <- heldout_phi[g-G];
             psi_g <- heldout_psi[g-G];
             omega_g <- heldout_omega[g-G];
         }
@@ -216,7 +203,7 @@ generated quantities {
         a <- mdivide_right_tri_low(
                 mdivide_left_tri_low(
                     L_g,
-                    expr[g] - S' - phi_g)',
+                    expr[g] - phi[g])',
                 L_g);
         #
         # Calculate predicted mean on test inputs

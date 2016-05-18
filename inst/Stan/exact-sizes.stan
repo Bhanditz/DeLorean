@@ -19,7 +19,7 @@ functions {
     real
     matern32_cov(real r, real l) {
         real x;
-        x <- sqrt(3) * fabs(r / l);
+        x <- sqrt(3.) * fabs(r / l);
         return (1 + x) * exp(- x);
     }
     #
@@ -115,6 +115,8 @@ data {
     #
     # Hyperparameters
     #
+    real mu_S;  # Mean of cell size factor, S
+    real<lower=0> sigma_S;  # S.d. of cell size factor, S
     real mu_psi;  # Mean of log between time variation, psi
     real<lower=0> sigma_psi;  # S.d. of log between time variation, psi
     real mu_omega;  # Mean of log within time variation, omega
@@ -143,11 +145,15 @@ transformed data {
     identity <- diag_matrix(rep_vector(1, C));
 }
 parameters {
+    row_vector[C] S;      # Cell-size factor for expression
     row_vector[C] tau;    # Pseudotime
     row_vector<lower=0>[G] psi;    # Between time variance
     row_vector<lower=0>[G] omega;  # Within time variance
 }
 model {
+    #
+    # Sample cell-specific factors
+    S ~ normal(mu_S, sigma_S);  # Cell size factors
     #
     # Sample gene-specific factors
     psi ~ lognormal(mu_psi, sigma_psi);
@@ -159,8 +165,7 @@ model {
     # Expression values for each gene
     for (g in 1:G) {
         expr[g] ~ multi_normal(
-                    #segment(phi, g, 1),
-                    rep_vector(phi[g], C),
+                    S + phi[g],
                     psi[g] * cov_symmetric(tau,
                                            periodic,
                                            period,
@@ -204,7 +209,7 @@ generated quantities {
         a <- mdivide_right_tri_low(
                 mdivide_left_tri_low(
                     L_g,
-                    expr[g] - phi[g])',
+                    expr[g] - S' - phi[g])',
                 L_g);
         #
         # Calculate predicted mean on test inputs

@@ -102,17 +102,14 @@ pseudotime.plot <- function(dl, sample.iter=dl$best.sample) {
 #'
 #' @export
 #'
-tau.offsets.plot <- function(dl, rug.alpha=.3) {
-    with(dl,
-         ggplot(samples.l$tau, aes(x=tau.offset, color=capture))
-         + geom_density()
-         + geom_rug(alpha=rug.alpha)
-         + stat_function(fun=functional::Curry(dnorm, sd=hyper$sigma_tau),
-                         linetype='dashed',
-                         alpha=.7,
-                         color='blue')
-    )
-}
+tau.offsets.plot <- function(dl, rug.alpha=.3) with(dl, {
+  prior.scale <- nrow(samples.l$tau) / length(levels(samples.l$tau$capture))
+  ggplot(samples.l$tau, aes(x=tau.offset, color=capture, fill=capture)) +
+    geom_histogram(position='dodge') +
+    geom_rug(alpha=rug.alpha) +
+    stat_function(fun=function(x) prior.scale * dnorm(x, sd=hyper$sigma_tau),
+                  linetype='dashed')
+})
 
 
 #' Plot the Rhat convergence statistics. \code{\link{examine.convergence}}
@@ -189,6 +186,7 @@ cmp.profiles.plot <- function(..., genes = NULL) {
 #' @param profile.color Colour for the profile
 #' @param add.data Add actual expression data to plot
 #' @param sample.iter Which sample to plot
+#' @param ignore.cell.sizes Ignore cell sizes if the model has estimated them
 #' @param ... Extra arguments
 #'
 #' @export
@@ -198,6 +196,7 @@ profiles.plot <- function(dl,
                           profile.color='black',
                           add.data=T,
                           sample.iter=dl$best.sample,
+                          ignore.cell.sizes=FALSE,
                           ...) {
     varargs <- list(...)
     with(dl, {
@@ -216,6 +215,7 @@ profiles.plot <- function(dl,
             predictions
             %>% filter(sample.iter == iter)
             %>% left_join(dl$gene.map)
+            %>% left_join(dl$gene.expr)
             %>% filter(gene %in% genes)
         )
         # stopifnot(! any(is.na(profile.data %>% select(-cbRank, -cbPeaktime))))
@@ -239,11 +239,13 @@ profiles.plot <- function(dl,
                 %>% left_join(samples.l$tau
                               %>% filter(sample.iter == iter)
                               %>% mutate(tau=modulo.period(tau))))
-            if (! is.null(varargs$cell.size.adj) && varargs$cell.size.adj) {
-                expr.data <- (
-                    expr.data
-                    %>% left_join(samples.l$S)
-                    %>% mutate(expr=expr - S))
+            #
+            # Adjust for cell sizes if they are there and we have not
+            # been asked to ignore them
+            if ('S' %in% names(samples.l) && ! ignore.cell.sizes) {
+                expr.data <- expr.data %>%
+                    left_join(samples.l$S) %>%
+                    mutate(expr=expr - S)
             }
             gp <- plot.add.expr(gp, .data=expr.data)
         }
@@ -255,13 +257,9 @@ profiles.plot <- function(dl,
 #'
 #' @param .data The data
 #'
-mutate.profile.data <- function(.data) {
-    (
-        .data
-        %>% mutate(x=tau, mean=predictedmean+phi, var=predictedvar)
-        %>% dplyr::select(-tau, -predictedmean, -phi, -predictedvar)
-    )
-}
+mutate.profile.data <- function(.data) .data %>%
+    mutate(x=tau, mean=predictedmean+phi.hat, var=predictedvar) %>%
+    dplyr::select(-tau, -predictedmean, -phi.hat, -predictedvar)
 
 
 # Adjust the predicted mean with the predictions from the model.
@@ -288,14 +286,9 @@ adjust.predictions <- function(.data, adjust.model) {
 #' @param gp Plot object
 #' @param .data Expression data to add
 #'
-plot.add.expr <- function(gp, .data=NULL)
-{
-    (gp + geom_point(data=.data,
-                     aes(x=tau,
-                         y=expr,
-                         color=capture),
-                     size=4,
-                     alpha=.7))
+plot.add.expr <- function(gp, .data=NULL) {
+    gp + geom_point(data=.data, aes(x=tau, y=expr, color=capture),
+                    size=4, alpha=.7)
 }
 
 
