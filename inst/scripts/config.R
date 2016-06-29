@@ -7,7 +7,7 @@ options(
   McDavid.save.output = FALSE,
   #
   # Windram
-  # Windram.model = 'exact',
+  Windram.model = 'exact-sizes',
   # Windram.method = 'vb',
   # Windram.max.genes = 10,
   # Windram.max.cells = 10,
