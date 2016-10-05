@@ -291,18 +291,21 @@ sample.genes.and.cells <- function(
 #' @param dl de.lorean object
 #' @param num.inducing Number of inducing points
 #' @param period Period of expression patterns
+#' @param num.sd.border The size of the border of the inducing inputs
+#'            around the capture times in units of number of standard
+#'            deviations
 #'
 #' @export
 #'
-calc.inducing.pseudotimes <- function(dl, num.inducing, period = 0) with(dl, {
+calc.inducing.pseudotimes <- function(dl, num.inducing, period = 0, num.sd.border = 7) with(dl, {
   if (period > 0) {
-    seq(from=0,
-        to=period * (1 - 1/num.inducing),
-        length.out=num.inducing)
+    seq(from = 0,
+        to = period * (1 - 1/num.inducing),
+        length.out = num.inducing)
   } else {
-    seq(from=time.range[1] - 3 * hyper$sigma_tau,
-        to=time.range[2] + 3 * hyper$sigma_tau,
-        length.out=num.inducing)
+    seq(from = time.range[1] - num.sd.border * hyper$sigma_tau,
+        to = time.range[2] + num.sd.border * hyper$sigma_tau,
+        length.out = num.inducing)
   }
 })
 
@@ -314,6 +317,9 @@ calc.inducing.pseudotimes <- function(dl, num.inducing, period = 0) with(dl, {
 #' @param num.inducing Number of inducing points
 #' @param period Period of expression patterns
 #' @param hold.out Number genes to hold out for generalisation tests
+#' @param num.sd.border The size of the border of the inducing inputs
+#'            around the capture times in units of number of standard
+#'            deviations
 #'
 #' @export prepare.for.stan
 #'
@@ -322,7 +328,8 @@ prepare.for.stan <- function(
   num.test = 101,
   num.inducing = 30,  # M
   period = 0,
-  hold.out = 0)
+  hold.out = 0,
+  num.sd.border = 7)
 within(dl, {
   opts$num.test <- num.test
   opts$period <- period
@@ -361,9 +368,9 @@ within(dl, {
       test.input <- seq(0, opts$period, length.out=num.test)
   } else {
       test.input <- seq(
-          time.range[1] - 2 * opts$sigma.tau,
-          time.range[2] + 2 * opts$sigma.tau,
-          length.out=num.test)
+          time.range[1] - num.sd.border * opts$sigma.tau,
+          time.range[2] + num.sd.border * opts$sigma.tau,
+          length.out = num.test)
   }
   #
   # Gather all the data into one list
@@ -381,7 +388,11 @@ within(dl, {
           expr=expr,
           phi=gene.map$phi.hat,
           # Inducing pseudotimes
-          u=calc.inducing.pseudotimes(dl, num.inducing, period),
+          u = calc.inducing.pseudotimes(
+            dl,
+            num.inducing = num.inducing,
+            period = period,
+            num.sd.border = num.sd.border),
           # Held out parameters
           heldout_psi=filter(gene.map, g > .G)$psi.hat,
           heldout_omega=filter(gene.map, g > .G)$omega.hat,
@@ -1055,7 +1066,7 @@ fit.model.vb <- function(
       }))
     #
     # Only keep results that worked
-    sflist <- Filter(function(x) ! is.null(x$lp), sflist)
+    sflist <- Filter(function(x) is.recursive(x) && ! is.null(x$lp), sflist)
     n.worked <- length(sflist)
     if (0 == n.worked) {
       stop('No VB fits worked.')

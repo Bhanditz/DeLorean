@@ -21,7 +21,7 @@ dl <- estimate.hyper(
     dl,
     sigma.tau=0.5,
     length.scale=1.5,
-    model.name='simple-model')
+    model.name='exact-sizes')
 
 ## ------------------------------------------------------------------------
 num.at.each.stage <- 5

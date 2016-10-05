@@ -5,7 +5,7 @@
 \title{Prepare for Stan}
 \usage{
 prepare.for.stan(dl, num.test = 101, num.inducing = 30, period = 0,
-  hold.out = 0)
+  hold.out = 0, num.sd.border = 7)
 }
 \arguments{
 \item{dl}{de.lorean object}
@@ -17,6 +17,10 @@ prepare.for.stan(dl, num.test = 101, num.inducing = 30, period = 0,
 \item{period}{Period of expression patterns}
 
 \item{hold.out}{Number genes to hold out for generalisation tests}
+
+\item{num.sd.border}{The size of the border of the inducing inputs
+around the capture times in units of number of standard
+deviations}
 }
 \description{
 Prepare for Stan
