@@ -16,4 +16,3 @@
 \description{
 Plot the posterior of held out genes
 }
-

@@ -8,14 +8,16 @@ options(
   #
   # Windram
   Windram.model = 'exact-sizes',
+  # Windram.model = 'lowrank-sizes',
   # Windram.method = 'vb',
-  # Windram.max.genes = 10,
-  # Windram.max.cells = 10,
-  # Windram.save.output = FALSE,
+  Windram.method = 'sample',
+  Windram.max.genes = 10,
+  Windram.max.cells = 10,
+  Windram.save.output = FALSE,
   #
   # Shalek
   Shalek.model = 'lowrank',
   Shalek.method = 'vb',
-  # Shalek.max.genes = 50,
-  # Shalek.max.cells = 100,
+  Shalek.max.genes = 33,
+  Shalek.max.cells = 77,
   Shalek.save.output = FALSE)

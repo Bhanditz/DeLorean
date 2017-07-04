@@ -22,4 +22,3 @@ phi, predictedvar)}
 \description{
 Add posterior representation to a plot.
 }
-

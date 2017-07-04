@@ -198,6 +198,60 @@ estimate.hyper <- function(
 #' Filter genes
 #'
 #' @param dl de.lorean object
+#' @param .filter Function that gakes a list of genes as input and returns
+#'     a vector of TRUE/FALSE
+#' @param number Number to sample if filter function or genes not supplied.
+#' @param genes The genes to keep.
+#' @examples
+#' \dontrun{
+#' genes <- c('NANOG', 'DAZ1', 'SOX4', 'PRDM14')
+#' filter.genes(dl, .filter = function(x) x %in% genes)
+#' filter.genes(dl, number = 4)
+#' filter.genes(dl, genes = genes)
+#' }
+#'
+#' @export filter.genes
+#'
+filter.genes <- function(dl,
+                         .filter=function(x) x %in% genes,
+                         number=NULL,
+                         genes=sample(rownames(dl$expr), number))
+{
+    .Deprecated('filter_genes', 'DeLorean')
+    filter_genes(dl, .filter, number, genes)
+}
+
+
+#' Filter cells
+#'
+#' @param dl de.lorean object
+#' @param .filter Function that gakes a list of cells as input and returns
+#'     a vector of TRUE/FALSE
+#' @param number Number to sample if filter function or cells not supplied.
+#' @param cells The cells to keep.
+#' @examples
+#' \dontrun{
+#' cells <- c('cell1', 'cell2', 'cell3', 'cell4')
+#' filter.cells(dl, .filter = function(x) x %in% cells)
+#' filter.cells(dl, number = 4)
+#' filter.cells(dl, cells = cells)
+#' }
+#'
+#' @export filter.cells
+#'
+filter.cells <- function(dl,
+                         .filter=function(x) x %in% cells,
+                         number=NULL,
+                         cells=sample(colnames(dl$expr), number))
+{
+    .Deprecated('filter_cells', 'DeLorean')
+    filter_cells(dl, .filter, number, cells)
+}
+
+
+#' Filter genes
+#'
+#' @param dl de.lorean object
 #' @param number Number to sample if filter function or genes not supplied.
 #' @param genes The genes to keep.
 #' @param .filter Function that gakes a list of genes as input and returns
@@ -205,7 +259,7 @@ estimate.hyper <- function(
 #'
 #' @export
 #'
-filter.genes <- function(dl,
+filter_genes <- function(dl,
                          .filter=function(x) x %in% genes,
                          number=NULL,
                          genes=sample(rownames(dl$expr), number))
@@ -227,7 +281,7 @@ filter.genes <- function(dl,
 #'
 #' @export
 #'
-filter.cells <- function(dl,
+filter_cells <- function(dl,
                          .filter=function(x) x %in% cells,
                          number=NULL,
                          cells=sample(colnames(dl$expr), number))
@@ -257,7 +311,7 @@ sample.per.capture <- function(dl, cells.per.capture) {
         # %>% do(sample_n(., min(cells.per.capture, length(cell))))
         %>% do(sample.at.most(., cells.per.capture))
     )
-    filter.cells(dl, cells=sampled.cells$cell)
+    filter_cells(dl, cells=sampled.cells$cell)
 }
 
 
@@ -594,43 +648,6 @@ orderings.plot <- function(dl) with(dl, {
   ggplot2::ggplot(results.df, aes(x=elapsed, y=ll, label=method)) +
     ggplot2::geom_text()
 })
-
-#' Use Magda's code to find good orderings
-#'
-#' @param dl de.lorean object
-#' @param number_paths Number of paths for each starting point
-#'
-#' @export
-#'
-magda.find.orderings <- function(
-    dl,
-    number_paths = 5)
-{
-  #
-  # Determine which cell indexes have either the highest or lowest
-  # observation times, we will use these as starting points
-  max.obs <- max(dl$cell.map$obstime)
-  min.obs <- min(dl$cell.map$obstime)
-  starting_points <-
-    (1:dl$.C)[which(dl$cell.map$obstime %in% c(max.obs, min.obs))]
-  #
-  # Call Magda's function to generate paths from these starting points
-  elapsed <- system.time(
-    magda.paths <- CombfuncPaths(
-      dl$expr,
-      starting_points=starting_points,
-      number_paths=number_paths))
-  #
-  # Convert Magda's paths into our format
-  lapply(
-    1:ncol(magda.paths),
-    function(c) within(list(), {
-      method.name <- stringr::str_c('Magda:', c)
-      elapsed <- elapsed / ncol(magda.paths)
-      ser.order <- magda.paths[,c]
-      ll <- dl$ordering.ll(ser.order)
-    }))
-}
 
 # Reverse ordering if it is better correlated with observed times
 rev.order.if.better <- function(dl, ser.order) {

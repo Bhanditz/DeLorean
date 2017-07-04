@@ -31,7 +31,7 @@ epi.sampled.cells <- guo.cell.meta %>%
            "ICM" == cell.type) %>%
     group_by(capture) %>%
     do(sample_n(., num.at.each.stage))
-dl <- filter.cells(dl, cells=epi.sampled.cells$cell)
+dl <- filter_cells(dl, cells=epi.sampled.cells$cell)
 
 ## ----aov-----------------------------------------------------------------
 dl <- aov.dl(dl)
@@ -43,7 +43,7 @@ head(dl$aov)
 tail(dl$aov)
 
 ## ---- exec=FALSE---------------------------------------------------------
-dl <- filter.genes(dl, genes=head(dl$aov, 20)$gene)
+dl <- filter_genes(dl, genes=head(dl$aov, 20)$gene)
 
 ## ------------------------------------------------------------------------
 dl <- examine.convergence(dl)
