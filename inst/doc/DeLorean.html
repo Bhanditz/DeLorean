@@ -12,7 +12,7 @@
 
 <meta name="author" content="John Reid" />
 
-<meta name="date" content="2017-07-04" />
+<meta name="date" content="2018-01-03" />
 
 <title>The DeLorean pseudotime estimation package</title>
 
@@ -70,7 +70,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">The DeLorean pseudotime estimation package</h1>
 <h4 class="author"><em>John Reid</em></h4>
-<h4 class="date"><em>2017-07-04</em></h4>
+<h4 class="date"><em>2018-01-03</em></h4>
 
 
 
@@ -132,25 +132,25 @@ dl &lt;-<span class="st"> </span><span class="kw">filter_cells</span>(dl, <span 
 <p>The most temporally variable genes (by p-value) are at the head of the result:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">head</span>(dl$aov)</code></pre></div>
 <pre><code>## # A tibble: 6 x 7
-##     gene    term    df     sumsq    meansq statistic      p.value
-##   &lt;fctr&gt;   &lt;chr&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt;
-## 1  Sall4 capture     6  98.10583 16.350971  71.18447 1.186993e-15
-## 2  Gata6 capture     6 344.14119 57.356865  42.13893 9.468650e-13
-## 3   Bmp4 capture     6 303.90384 50.650640  36.58841 5.391462e-12
-## 4   Actb capture     6  34.13423  5.689038  34.63947 1.049178e-11
-## 5 Tspan8 capture     6 278.21687 46.369478  33.80668 1.408351e-11
-## 6 Pou5f1 capture     6  79.39507 13.232512  27.24854 1.827721e-10</code></pre>
+##      gene    term    df     sumsq    meansq statistic      p.value
+##    &lt;fctr&gt;   &lt;chr&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt;
+## 1  Tspan8 capture     6 318.94068  53.15678  49.64417 1.214143e-13
+## 2   Gata4 capture     6 681.80135 113.63356  48.63760 1.572470e-13
+## 3    Sox2 capture     6 427.32840  71.22140  46.67877 2.637983e-13
+## 4   Grhl1 capture     6 763.76926 127.29488  44.08173 5.402009e-13
+## 5   DppaI capture     6 485.72076  80.95346  40.90517 1.368646e-12
+## 6 Tcfap2c capture     6  77.95811  12.99302  39.01037 2.457585e-12</code></pre>
 <p>The least temporally variable genes (by p-value) are at the tail of the result:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tail</span>(dl$aov)</code></pre></div>
 <pre><code>## # A tibble: 6 x 7
-##      gene    term    df     sumsq    meansq statistic    p.value
-##    &lt;fctr&gt;   &lt;chr&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;      &lt;dbl&gt;
-## 1    Klf4 capture     6  22.45294  3.742156 3.3399243 0.01311283
-## 2     Msc capture     6  85.89667 14.316111 2.9890350 0.02197590
-## 3   Pdgfa capture     6 120.90622 20.151036 2.9164331 0.02449000
-## 4  Atp12a capture     6  17.51055  2.918426 1.6109303 0.18111345
-## 5 Tcfap2a capture     6  44.21587  7.369311 1.2677130 0.30370287
-## 6   Sox17 capture     6  23.17571  3.862618 0.9168198 0.49758776</code></pre>
+##      gene    term    df    sumsq    meansq statistic    p.value
+##    &lt;fctr&gt;   &lt;chr&gt; &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;      &lt;dbl&gt;
+## 1    Cdx2 capture     6 41.53234  6.922057 2.4769523 0.04763159
+## 2   Esrrb capture     6 50.05827  8.343046 2.1950267 0.07348559
+## 3   Tcf23 capture     6 80.61247 13.435411 2.1187753 0.08267670
+## 4    Msx2 capture     6 61.07005 10.178341 2.0900376 0.08643484
+## 5  Atp12a capture     6 24.90279  4.150465 1.8682503 0.12183422
+## 6 Tcfap2a capture     6 28.01346  4.668910 0.9040465 0.50604553</code></pre>
 <p>and for instance you could run the model on the 20 most variable genes by executing</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">dl &lt;-<span class="st"> </span><span class="kw">filter_genes</span>(dl, <span class="dt">genes=</span><span class="kw">head</span>(dl$aov, <span class="dv">20</span>)$gene)</code></pre></div>
 <p>otherwise do not call <code>filter_genes</code> and <code>DeLorean</code> will use all the genes.</p>

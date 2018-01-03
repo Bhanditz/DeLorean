@@ -139,6 +139,11 @@ analyse.variance <- function(dl, adjust.cell.sizes) {
 #'   }
 #' @param adjust.cell.sizes Adjust by the cell sizes for better estimates of the hyperparameters
 #'
+#' @examples
+#' data(WindramDeLorean)
+#' dl <- de.lorean(windram.expr, windram.gene.meta, windram.cell.meta)
+#' dl <- estimate.hyper(dl)
+#'
 #' @export
 #'
 estimate.hyper <- function(
@@ -198,64 +203,15 @@ estimate.hyper <- function(
 #' Filter genes
 #'
 #' @param dl de.lorean object
-#' @param .filter Function that gakes a list of genes as input and returns
-#'     a vector of TRUE/FALSE
-#' @param number Number to sample if filter function or genes not supplied.
-#' @param genes The genes to keep.
-#' @examples
-#' \dontrun{
-#' genes <- c('NANOG', 'DAZ1', 'SOX4', 'PRDM14')
-#' filter.genes(dl, .filter = function(x) x %in% genes)
-#' filter.genes(dl, number = 4)
-#' filter.genes(dl, genes = genes)
-#' }
-#'
-#' @export filter.genes
-#'
-filter.genes <- function(dl,
-                         .filter=function(x) x %in% genes,
-                         number=NULL,
-                         genes=sample(rownames(dl$expr), number))
-{
-    .Deprecated('filter_genes', 'DeLorean')
-    filter_genes(dl, .filter, number, genes)
-}
-
-
-#' Filter cells
-#'
-#' @param dl de.lorean object
-#' @param .filter Function that gakes a list of cells as input and returns
-#'     a vector of TRUE/FALSE
-#' @param number Number to sample if filter function or cells not supplied.
-#' @param cells The cells to keep.
-#' @examples
-#' \dontrun{
-#' cells <- c('cell1', 'cell2', 'cell3', 'cell4')
-#' filter.cells(dl, .filter = function(x) x %in% cells)
-#' filter.cells(dl, number = 4)
-#' filter.cells(dl, cells = cells)
-#' }
-#'
-#' @export filter.cells
-#'
-filter.cells <- function(dl,
-                         .filter=function(x) x %in% cells,
-                         number=NULL,
-                         cells=sample(colnames(dl$expr), number))
-{
-    .Deprecated('filter_cells', 'DeLorean')
-    filter_cells(dl, .filter, number, cells)
-}
-
-
-#' Filter genes
-#'
-#' @param dl de.lorean object
 #' @param number Number to sample if filter function or genes not supplied.
 #' @param genes The genes to keep.
 #' @param .filter Function that gakes a list of genes as input and returns
 #'     a vector of TRUE/FALSE
+#'
+#' @examples
+#' data(WindramDeLorean)
+#' dl <- de.lorean(windram.expr, windram.gene.meta, windram.cell.meta)
+#' dl <- filter_genes(dl, number = 37)
 #'
 #' @export
 #'
@@ -278,6 +234,11 @@ filter_genes <- function(dl,
 #' @param cells The cells to keep.
 #' @param .filter Function that gakes a list of cells as input and returns
 #'     a vector of TRUE/FALSE
+#'
+#' @examples
+#' data(WindramDeLorean)
+#' dl <- de.lorean(windram.expr, windram.gene.meta, windram.cell.meta)
+#' dl <- filter_cells(dl, number = 7)
 #'
 #' @export
 #'
@@ -1206,22 +1167,31 @@ join.tau.samples <- function(dl, tau.samples) {
 #' @export
 #'
 process.posterior <- function(dl) {
-    within(dl, {
-        # Define a function to melt samples into a long format
-        samples.l <- sample.melter(dl)(rstan::extract(dl$fit, permuted=TRUE),
-                                       model.parameter.dimensions(dl))
-        best.sample <- which.max(samples.l$lp__$lp__)
-        if (TRUE %in% samples.l$logmarglike$is.held.out) {
-            mean.held.out.marg.ll <- mean(
-                (samples.l$logmarglike
-                %>% left_join(gene.map)
-                %>% filter(is.held.out))$logmarglike)
-            message('Mean held out marginal log likelihood per cell: ',
-                    mean.held.out.marg.ll / stan.data$C)
-        }
-        # Include meta data in tau samples
-        samples.l$tau <- join.tau.samples(dl, samples.l$tau)
-    })
+  within(dl, {
+    # Define a function to melt samples into a long format
+    samples.l <- sample.melter(dl)(rstan::extract(dl$fit, permuted = TRUE),
+                                   model.parameter.dimensions(dl))
+    best.sample <- which.max(samples.l$lp__$lp__)
+    if (TRUE %in% samples.l$logmarglike$is.held.out) {
+      mean.held.out.marg.ll <-
+        mean((
+          samples.l$logmarglike %>%
+          left_join(gene.map) %>%
+          filter(is.held.out))$logmarglike)
+      message('Mean held out marginal log likelihood per cell: ',
+              mean.held.out.marg.ll / stan.data$C)
+    }
+    #
+    # Include meta data in tau samples
+    samples.l$tau <- join.tau.samples(dl, samples.l$tau)
+    #
+    # Get parameters from best iteration
+    best.m <- lapply(samples.l, function(s) filter(s, iter == best.sample))
+    #
+    # Expose Stan functions from model
+    stan.fns <- new.env()
+    rstan::expose_stan_functions(fit, env = stan.fns)
+  })
 }
 
 

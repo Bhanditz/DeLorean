@@ -7,13 +7,14 @@ options(
   McDavid.save.output = FALSE,
   #
   # Windram
-  Windram.model = 'exact-sizes',
+  # Windram.model = 'exact',
+  # Windram.model = 'exact-sizes',
   # Windram.model = 'lowrank-sizes',
   # Windram.method = 'vb',
-  Windram.method = 'sample',
-  Windram.max.genes = 10,
-  Windram.max.cells = 10,
-  Windram.save.output = FALSE,
+  # Windram.method = 'sample',
+  # Windram.max.genes = 25,
+  # Windram.max.cells = 10,
+  # Windram.save.output = FALSE,
   #
   # Shalek
   Shalek.model = 'lowrank',
