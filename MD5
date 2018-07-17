@@ -1,13 +1,13 @@
-875f4a1358afaabcfd45b69f37cc4094 *DESCRIPTION
+55663868975f08a2e5cab3f56e4a7088 *DESCRIPTION
 6017ef77881649905c18179741f2d36a *LICENSE
 c6ee6d1da8e88c5e7db9f95f362646a4 *NAMESPACE
-7b285cb25ffe5bc8abe2c9927bb62d5e *NEWS.md
+b6b3e95b20386c936bde916845a33f1f *NEWS.md
 b23d567f0f450409f929f1c2f3ba3b97 *R/aov.r
 e7aae446a6f0254dfae8f0f7c5d2114a *R/cell-size.r
 b96152f192bf133d203343be9d3a54c8 *R/data.r
 1a38aa3cc5619b94b8942c0c7636cb2a *R/gp.r
 b04fddcf79bc900dbdae4fa31bb91b03 *R/held-out.r
-9d9ad68a9eb4ed45a37519cac64e51c2 *R/model.r
+6dbfdf9aae0681348e3ab33bd738c7ef *R/model.r
 dd4aa76023ef7fff4038db45c02825df *R/ordering.r
 35d381edf5209802fb95bf1894a40251 *R/package.r
 6ab613a2cbd6082a62e976932e50255d *R/plot.r
@@ -15,7 +15,7 @@ dd4aa76023ef7fff4038db45c02825df *R/ordering.r
 6d1b1855ff5c83cbb8be1dd72f96cb8a *R/robustness.r
 dfff3542d313c9c22ce240abab9f9e32 *R/smoothness.r
 ce6b58cd26f1ad19f8d0072b8b72d627 *README.md
-2c03397471bba97d9043d00c17501c5b *build/vignette.rds
+e80105f718c0b0f87f5a4680c6efbc79 *build/vignette.rds
 8d637f241a104fe1574164a7648c22fd *data/GuoDeLorean.rda
 45ab3d1433fb6fa9f78ba0e0eace6a07 *data/KounoDeLorean.rda
 d537a0d5bd32f8043365cf47fca4beaf *data/WindramDeLorean.rda
@@ -30,9 +30,10 @@ fe10f12cf39e962018b4b2fb3dbbc33c *inst/Stan/exact-sizes.stan
 2d076b8f826bca8c4fe13aba5c721868 *inst/Stan/exact.stan
 6922bf04b86e6d0d974e7df280c1393f *inst/Stan/lowrank-sizes.stan
 8cb4c96e7501874a7815630bfb23b57b *inst/Stan/lowrank.stan
+c88042345d256b6c1a1335add9b4d526 *inst/WORDLIST
 3bf803174f2e1fabb4e422b4b3fde180 *inst/doc/DeLorean.R
 f805e2b3f365452fd8d64a1eb83fa98e *inst/doc/DeLorean.Rmd
-2cbe5e6d066bb313492496b1c834d3ce *inst/doc/DeLorean.html
+300f971ce31ad26860603ce79e212e03 *inst/doc/DeLorean.html
 cd16fc127335581b365442f82139280b *inst/doc/Test_vignette.R
 9c1157c67baaadd6bce038f5f8deb009 *inst/doc/Test_vignette.Rmd
 652584488bdf00b31e0fbccecc9ca77e *inst/doc/Test_vignette.html
@@ -52,7 +53,7 @@ dd8ba6a338384a0c821153dc75dc3570 *inst/scripts/McDavid-DeLorean.Rmd
 9b1538d88215550a50f5b18bfab3860f *inst/scripts/McDavid-Oscope.Rmd
 ad012718ea68be4aad97038b1b00a096 *inst/scripts/McDavid-fns.R
 9a0217b66af5c6bf3172b98260cd020e *inst/scripts/McDavid-profiles.eps
-a748977b1988440461e83f75ed6bea13 *inst/scripts/Shalek-DeLorean.Rmd
+c81d03386ab00990099db69ca44a8c84 *inst/scripts/Shalek-DeLorean.Rmd
 83b207fc3efe0879078e27b5541bcfd8 *inst/scripts/Tang-DeLorean.Rmd
 c5a2c7fe1762f7ca1df41a943c83103e *inst/scripts/Tang-parse.Rmd
 e9a7c02a85c673a081c1128da32c212c *inst/scripts/Trapnell-2014.Rmd
@@ -65,7 +66,7 @@ e9a7c02a85c673a081c1128da32c212c *inst/scripts/Trapnell-2014.Rmd
 eff234898f2f790020b6a0b0bd78ff32 *inst/scripts/Windram-pseudotime-vs-obfuscated.eps
 f18cf6fd95b716600c587f9c3725cc52 *inst/scripts/Windram-tau-posterior.eps
 28db651520bced254ac61ce485a31c4a *inst/scripts/complexity.Rmd
-647d9839851a680c607cb2ea4698141f *inst/scripts/config.R
+00cc1d91fa5b22c88ee803e2213b30c4 *inst/scripts/config.R
 fe400a582928d68a8a45e36d589623b0 *inst/scripts/fetch-Shalek-2014.Rmd
 a75f78460b16f595420217435bf058cf *inst/scripts/fetch-Windram.Rmd
 69d6b4c328af14ddbeae1db9abccee52 *inst/scripts/parse-Kouno.Rmd

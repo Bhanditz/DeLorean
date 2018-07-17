@@ -17,8 +17,8 @@ options(
   # Windram.save.output = FALSE,
   #
   # Shalek
-  Shalek.model = 'lowrank',
+  # Shalek.model = 'lowrank',
   Shalek.method = 'vb',
-  Shalek.max.genes = 33,
-  Shalek.max.cells = 77,
+  # Shalek.max.genes = 33,
+  # Shalek.max.cells = 77,
   Shalek.save.output = FALSE)
