@@ -1,10 +1,12 @@
-## ----setup, echo=F-------------------------------------------------------
+## ----setup, echo = FALSE-------------------------------------------------
 knitr::opts_chunk$set(
-    fig.width=12,
-    fig.height=12/1.618,
-    out.width='685px',
-    dpi=144,
-    message=FALSE)
+  fig.width = 12,
+  fig.height = 12 / 1.618,
+  out.width = '685px',
+  dpi = 144,
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE)
 
 ## ----guoData-------------------------------------------------------------
 library(DeLorean)
@@ -21,7 +23,7 @@ dl <- estimate.hyper(
     dl,
     sigma.tau=0.5,
     length.scale=1.5,
-    model.name='exact-sizes')
+    model.name='exactsizes')
 
 ## ------------------------------------------------------------------------
 num.at.each.stage <- 5
@@ -44,6 +46,9 @@ tail(dl$aov)
 
 ## ---- exec=FALSE---------------------------------------------------------
 dl <- filter_genes(dl, genes=head(dl$aov, 20)$gene)
+
+## ----fitDL, cache=TRUE, results='hide'-----------------------------------
+dl <- fit.dl(dl, method='vb')
 
 ## ------------------------------------------------------------------------
 dl <- examine.convergence(dl)

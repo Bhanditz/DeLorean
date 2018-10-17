@@ -1,14 +1,19 @@
-#' DeLorean.
+#' The 'DeLorean' package.
 #'
-#' @name DeLorean
+#' @description Fits the DeLorean pseudotime model.
+#'
 #' @docType package
-#'
+#' @name DeLorean-package
+#' @aliases DeLorean
+#' @useDynLib DeLorean, .registration = TRUE
+#' @import methods
 #' @import Rcpp
+#' @import rstantools
+#' @importFrom rstan sampling stan sflist2stanfit vb monitor optimizing log_prob
+#'   unconstrain_pars extract
 #' @import ggplot2
 #' @import dplyr
 #' @import reshape2
-#' @importFrom rstan stan sflist2stanfit vb monitor optimizing log_prob
-#'   unconstrain_pars extract
 #' @importFrom stats aov as.dist cmdscale cor dgamma
 #'   dist dlnorm median prcomp predict runif
 #'   sd t.test var weighted.mean
@@ -16,8 +21,9 @@
 #'
 NULL
 
+
 # To avoid R CMD check --as-cran NOTES
-utils::globalVariables(names=c(
+utils::globalVariables(names = c(
   '.',
   'Mgk',
   'Omega',
@@ -50,6 +56,7 @@ utils::globalVariables(names=c(
   'is.held.out',
   'iter',
   'median.tau',
+  'model_name',
   'mu',
   'name',
   'num.capture',
@@ -86,9 +93,6 @@ utils::globalVariables(names=c(
   'x.sd',
   'x.var'))
 
-.onLoad <- function(libname, pkgname) { # nocov start
-  # loadRcppModules()
-} # nocov end
 
 #' Initialise DeLorean object
 #'
@@ -128,6 +132,7 @@ de.lorean <- function(expr, gene.meta, cell.meta) {
     result
 }
 
+
 #' Is a DeLorean object?
 #'
 #' @param x de.lorean object
@@ -135,6 +140,7 @@ de.lorean <- function(expr, gene.meta, cell.meta) {
 #' @export
 #'
 is.de.lorean <- function(x) inherits(x, "de.lorean")
+
 
 # Is internally consistent?
 #
@@ -164,6 +170,7 @@ print.de.lorean <- function(x, ...) {
     print(sapply(x, head))
 }
 
+
 #' Dimensions of DeLorean object
 #'
 #' @param x De lorean object
@@ -173,6 +180,7 @@ print.de.lorean <- function(x, ...) {
 dim.de.lorean <- function(x) {
     dim(x$expr)
 }
+
 
 #' Default number of cores to use.
 #'
@@ -185,6 +193,7 @@ default.num.cores <- function() {
     return(getOption("DL.num.cores", max(parallel::detectCores() - 1, 1)))
   }
 }
+
 
 # Summarise DeLorean object
 #
